@@ -29,7 +29,7 @@ def child_sum(k):
     if len(Gn[k].children)>0:
         for i in Gn[k].children:
             temp_sum=temp_sum+child_sum(i)
-            Gn[k].descedant_num=1+temp_sum
+        Gn[k].descedant_num=1+temp_sum
         return 1+temp_sum
     else:
         Gn[k].descedant_num=1
@@ -97,24 +97,24 @@ def max_deg_search(source,path=[],neighbor_heap=[],possibility=1):
     path.append(source)
     for i in Gn[source].neighbor:
         if i not in path:
-            heappush(neighbor_heap,(Gn[i].descedant_num,i))
+            heappush(neighbor_heap,(Gn[i].degree,Gn[i].descedant_num,i))
     if neighbor_heap:
         possibility=possibility/float(len(neighbor_heap))
         #print(possibility)
         #print(neighbor_heap)
-        path,possibility=max_deg_search((heappop(neighbor_heap))[1],path,neighbor_heap,possibility)
+        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
     return path,possibility
 
 def min_deg_search(source,path=[],neighbor_heap=[],possibility=1):
     path.append(source)
     for i in Gn[source].neighbor:
         if i not in path:
-            heappush(neighbor_heap,(-Gn[i].descedant_num,i))
+            heappush(neighbor_heap,(-Gn[i].degree,-Gn[i].descedant_num,i))
     if neighbor_heap:
         possibility=possibility/float(len(neighbor_heap))
         #print(possibility)
         #print(neighbor_heap)
-        path,possibility=min_deg_search((heappop(neighbor_heap))[1],path,neighbor_heap,possibility)
+        path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
     return path,possibility
 
 # Class of node with number,children,parent,state,degree,neighbor
