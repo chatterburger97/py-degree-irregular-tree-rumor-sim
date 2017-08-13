@@ -17,7 +17,7 @@ class Graph(object):
         self.root = -1
 
     # N = size of graph
-    def return_full_underlying_graph(self):
+    def construct_underlying_graph(self):
         # append nodes
         for i in range(0, self.N + 1):
             self.G.append(node(i))
@@ -175,25 +175,22 @@ class Graph(object):
                             dfs(current, path)
             return path
 
-    # function for heuristic1
     def max_deg_search(self, k, path=[], neighbor_heap=[], possibility=1):
-            path.append(k)
-            for i in self.n[k].neighbor:
-                    if i not in path:
-                            heappush(neighbor_heap, (self.G[i].degree, i))
-            if neighbor_heap:
-                    possibility = possibility / float(len(neighbor_heap))
-            print(possibility)
-            path, possibility = max_deg_search((heappop(neighbor_heap))[1], path, neighbor_heap, possibility)
-            return path, possibility
+        path.append(k)
+        for i in self.Gn[k].neighbor:
+            if i not in path:
+                heappush(neighbor_heap, (self.Gn[i].degree, self.Gn[i].descendant_num, i))
+        if neighbor_heap:
+            possibility = possibility / float(len(neighbor_heap))
+            path, possibility = self.max_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility)
+        return path, possibility
 
     def min_deg_search(self, k, path=[], neighbor_heap=[], possibility=1):
-            path.append(k)
-            for i in self.Gn[k].neighbor:
-                    if i not in path:
-                            heappush(neighbor_heap, (-self.G[i].degree, i))
-            if neighbor_heap:
-                possibility = possibility / float(len(neighbor_heap))
-                print(possibility)
-                path, possibility = max_deg_search((heappop(neighbor_heap))[1], path, neighbor_heap, possibility)
-            return path, possibility
+        path.append(k)
+        for i in self.Gn[k].neighbor:
+            if i not in path:
+                heappush(neighbor_heap, (-self.Gn[i].degree, -self.Gn[i].descendant_num, i))
+        if neighbor_heap:
+            possibility = possibility / float(len(neighbor_heap))
+            path, possibility = self.min_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility)
+        return path, possibility

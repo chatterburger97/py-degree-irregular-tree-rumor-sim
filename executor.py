@@ -2,12 +2,12 @@ import search_heuristics as srch
 from dijkstra import dijkstra
 import matplotlib.pyplot as plt
 
+global_hop_error_dictionary = {}
+
 
 def findMaxPossibilityPath(chosen_search, input_graph, infected_group, bfs_argument=1):
-    # max probability among the probabilities of any of
-    # the permutations that result in infected_group
+    # max probability among the probabilities of any of the permutations that result in infected_group
     max_permutation_probability = 0
-    # the node with the largest estimated probability as found above
     estimated_start_node = 0
     if chosen_search == 'bfs':
         for val in infected_group:
@@ -40,76 +40,66 @@ def findMaxPossibilityPath(chosen_search, input_graph, infected_group, bfs_argum
 
 
 class simulation_executor:
-    def __init__(self, input_graph, chosen_search, sim_count, bfs_argument=1):
-        self.input_graph = input_graph
+    def __init__(self, chosen_search, bfs_argument=1):
         self.chosen_search = chosen_search
-        self.sim_count = sim_count
         self.bfs_argument = bfs_argument
-        self.x_points = []
-        self.y_points = []
+        self.hopErrorSum = 0
         self.iteration = 1
-        print 'initialised new simulator'
+        # print 'initialised new simulator'
 
-    def simulate(self):
-        print 'entering simulate function with search '
-        for val in range(0, self.sim_count, 1):
-            constructed_graph = self.input_graph.return_full_underlying_graph()
+    def addHopError(self, constructed_graph, input_graph, actual_source, infected_group):
+        # print(self.chosen_search, ', entering addHopError')
+        dist_map = dict()
+        dijkstra(constructed_graph, infected_group, dist_map, actual_source)
+        estimated_start_node = findMaxPossibilityPath(self.chosen_search, input_graph, infected_group, self.bfs_argument)
+        self.hopErrorSum += dist_map[estimated_start_node]
+
+    def plot_hop_error(self):
+        global_hop_error_dictionary[self.chosen_search] = self.hopErrorSum
+
+
+def plotAll(sim_count, file_prefix):
+
+    natural_bfs_sim = simulation_executor('bfs')
+    ascending_bfs_sim = simulation_executor('bfs', 2)
+    descending_bfs_sim = simulation_executor('bfs', 3)
+    min_deg_sim = simulation_executor('min_deg_search')
+    max_deg_sim = simulation_executor('max_deg_search')
+
+    for val in range(0, sim_count):
+        input_graph = srch.Graph(100, 3)
+        constructed_graph = input_graph.construct_underlying_graph()
+        valid = False
+        actual_source = -1
+        infected_group = []
+
+        while not valid:
             try:
-                source, infected_group = self.input_graph.spread_rumor(10)
+                actual_source, infected_group = input_graph.spread_rumor(10)
+                valid = True
             except ValueError:
-                self.sim_count -= 1
-                continue
-            else:
-                dist_map = dict()
-                dijkstra(constructed_graph, infected_group, dist_map, source)
-                estimated_start_node = findMaxPossibilityPath(self.chosen_search, self.input_graph, infected_group, self.bfs_argument)
-                print 'estimated start node: ', estimated_start_node
-                print 'hop error: ', dist_map[estimated_start_node]
-                self.y_points.append(dist_map[estimated_start_node])
-                print 'iteration number: ', val + 1
-                self.x_points.append(val + 1)  # iteration number
+                valid = False
 
-    def plot_simulation(self, file_prefix=None):
-        print '<plotting simulation>\n'
-        plt.plot(self.x_points, self.y_points, 'ro')
-        plt.xlabel('Iteration number')
-        plt.ylabel('Hop error b/w estimated best probability node and actual rumor source')
-        if file_prefix is None:
-            plt.show()
-        else:
-            filename = self.chosen_search + '_' + file_prefix + '_' + str(self.iteration) + '.png'
-            plt.savefig(str(filename))
-            print 'filename: ', filename
-            self.iteration += 1
+        natural_bfs_sim.addHopError(constructed_graph, input_graph, actual_source, infected_group)
+        ascending_bfs_sim.addHopError(constructed_graph, input_graph, actual_source, infected_group)
+        descending_bfs_sim.addHopError(constructed_graph, input_graph, actual_source, infected_group)
+        min_deg_sim.addHopError(constructed_graph, input_graph, actual_source, infected_group)
+        max_deg_sim.addHopError(constructed_graph, input_graph, actual_source, infected_group)
+
+    # store the sum of hop errors for each search as a key-value pair in a global dictionary
+    natural_bfs_sim.plot_hop_error()
+    ascending_bfs_sim.plot_hop_error()
+    descending_bfs_sim.plot_hop_error()
+    min_deg_sim.plot_hop_error()
+    max_deg_sim.plot_hop_error()
+
+    # plot the final bar graph
+    plt.bar(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.values(), align='center')
+    plt.xticks(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.keys())
+    plt.savefig(str(file_prefix + '.png'))
 
 
-def plotAll(input_graph, sim_count, file_prefix):
-    # plot for natural bfs
-    # natural_bfs_sim  = simulation_executor('bfs', sim_count)
-    # natural_bfs_sim.simulate()
-
-    # plot for ascending bfs
-    # ascending_bfs_sim = simulation_executor('bfs',sim_count, 2)
-    # ascending_bfs_sim.simulate()
-
-    # plot for descending
-    descending_bfs_sim = simulation_executor(input_graph, 'bfs', sim_count, 3)
-    descending_bfs_sim.simulate()
-
-    # # plot for min_degree
-    # min_deg_sim = simulation_executor('min_deg_search',3)
-
-    # # plot for max degree
-    # max_deg_sim = simulation_executor('max_deg_search', 3)
-
-    # natural_bfs_sim.plot_simulation(file_prefix)
-    # ascending_bfs_sim.plot_simulation(file_prefix)
-    descending_bfs_sim.plot_simulation(file_prefix)
-    # min_deg_sim.plot_simulation()
-    # max_deg_sim.plot_simulation()
-
-
-input_graph = srch.Graph(100, 3)
 user_defined_sim_count = raw_input("Please enter the number of times you wish to simulate\n")
 user_defined_names = raw_input("Enter a unique name for the saved plot file \n")
-plotAll(input_graph, int(user_defined_sim_count), user_defined_names)
+
+plotAll(int(user_defined_sim_count), user_defined_names)
