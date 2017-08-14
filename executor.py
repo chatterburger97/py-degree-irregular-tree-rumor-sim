@@ -55,12 +55,16 @@ class simulation_executor:
         self.hopErrorSum += dist_map[estimated_start_node]
 
     def plot_hop_error(self):
-        global_hop_error_dictionary[self.chosen_search] = self.hopErrorSum
+        if self.chosen_search == 'bfs':
+            key = self.chosen_search + str(self.bfs_argument)
+        else:
+            key = self.chosen_search
+        global_hop_error_dictionary[key] = self.hopErrorSum
 
 
 def plotAll(sim_count, file_prefix):
 
-    natural_bfs_sim = simulation_executor('bfs')
+    natural_bfs_sim = simulation_executor('bfs', 1)
     ascending_bfs_sim = simulation_executor('bfs', 2)
     descending_bfs_sim = simulation_executor('bfs', 3)
     min_deg_sim = simulation_executor('min_deg_search')
