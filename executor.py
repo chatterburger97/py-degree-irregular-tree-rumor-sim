@@ -2,6 +2,7 @@ import search_heuristics as srch
 import matplotlib.pyplot as plt
 from dijkstra import dijkstra
 from math import sqrt
+from collections import OrderedDict
 
 global_hop_error_dictionary = {}
 
@@ -13,6 +14,12 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
     if chosen_search == 'bfs':
         for val in infected_group:
             adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.bfs(val, bfs_argument)[1]
+            if max_permutation_probability < float(adjusted_possibility):
+                max_permutation_probability = float(adjusted_possibility)
+                estimated_start_node = val
+    elif chosen_search == 'dfs':
+        for val in infected_group:
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, path=[], possibility=1, degsum=0)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
@@ -61,11 +68,11 @@ class simulation_executor:
         # print 'initialised new simulator'
 
     def add_hop_error(self, constructed_graph, input_graph, actual_source, infected_group):
-        # print(self.chosen_search, ', entering add_hop_error')
+
         dist_map = dict()
         dijkstra(constructed_graph, infected_group, dist_map, actual_source)
         estimated_start_node = find_max_possibility_path(self.chosen_search, input_graph, infected_group, self.bfs_argument)
-        # print estimated_start_node
+
         self.hopErrorSum += dist_map[estimated_start_node]
 
     def plot_hop_error(self):
@@ -83,8 +90,9 @@ def plot_all(sim_count, file_prefix):
     descending_bfs_sim = simulation_executor('bfs', 3)
     min_deg_sim = simulation_executor('min_deg_search')
     max_deg_sim = simulation_executor('max_deg_search')
-    bfs_arithmetic_avg = simulation_executor('bfs_arithmetic_avg')
-    bfs_geometric_avg = simulation_executor('bfs_geometric_avg')
+    bfs_arithmetic_avg_sim = simulation_executor('bfs_arithmetic_avg')
+    bfs_geometric_avg_sim = simulation_executor('bfs_geometric_avg')
+    dfs_sim = simulation_executor('dfs')
 
     for val in range(0, sim_count):
         input_graph = srch.Graph(100, 3)
@@ -105,8 +113,9 @@ def plot_all(sim_count, file_prefix):
         descending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         min_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         max_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        bfs_arithmetic_avg.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        bfs_geometric_avg.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        bfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        bfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
 
     # store the sum of hop errors for each search as a key-value pair in a global dictionary
     natural_bfs_sim.plot_hop_error()
@@ -114,18 +123,23 @@ def plot_all(sim_count, file_prefix):
     descending_bfs_sim.plot_hop_error()
     min_deg_sim.plot_hop_error()
     max_deg_sim.plot_hop_error()
-    bfs_arithmetic_avg.plot_hop_error()
-    bfs_geometric_avg.plot_hop_error()
+    bfs_arithmetic_avg_sim.plot_hop_error()
+    bfs_geometric_avg_sim.plot_hop_error()
 
-    plt.bar(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.values(), align='center')
-    plt.xticks(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.keys(), rotation='vertical')
+    hop_error_ordered_dict = OrderedDict(sorted(global_hop_error_dictionary.items()))
+    # print hop_error_ordered_dict
+    # print global_hop_error_dictionary, 'global unsorted'
+    plt.bar(range(len(global_hop_error_dictionary)), hop_error_ordered_dict.values(), align='center')
+    plt.xticks(range(len(global_hop_error_dictionary)), hop_error_ordered_dict.keys(), rotation='vertical')
     plt.tight_layout()
     plt.savefig(str(file_prefix + '.png'))
 
+
 def remove(value, deletechars):
     for c in deletechars:
-        value = value.replace(c,'')
-    return value;
+        value = value.replace(c, '')
+    return value
+
 
 # run actual main method
 if __name__ == '__main__':
@@ -141,4 +155,3 @@ if __name__ == '__main__':
         except ValueError:
             print ' ERROR : Invalid input. Please input sim count as number'
             valid = False
-        
