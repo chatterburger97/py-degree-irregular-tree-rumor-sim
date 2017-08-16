@@ -18,13 +18,13 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
                 estimated_start_node = val
     elif chosen_search == 'min_deg_search':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.min_deg_search(val)[1]
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
     elif chosen_search == 'max_deg_search':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.max_deg_search(val)[1]
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
@@ -117,22 +117,28 @@ def plot_all(sim_count, file_prefix):
     bfs_arithmetic_avg.plot_hop_error()
     bfs_geometric_avg.plot_hop_error()
 
-    # plot the final bar graph
     plt.bar(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.values(), align='center')
-    # plt.xticks(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.keys())
-    plt.xticks(range(len(global_hop_error_dictionary)), range(len(global_hop_error_dictionary.keys())))
-
-    legend_keys = global_hop_error_dictionary.keys()
-    legend_values = []
-    for val in range(0, len(global_hop_error_dictionary)):
-        legend_values.append(legend_keys[val])
-    plt.legend(legend_keys, legend_values)
-
+    plt.xticks(range(len(global_hop_error_dictionary)), global_hop_error_dictionary.keys(), rotation='vertical')
+    plt.tight_layout()
     plt.savefig(str(file_prefix + '.png'))
 
+def remove(value, deletechars):
+    for c in deletechars:
+        value = value.replace(c,'')
+    return value;
 
 # run actual main method
 if __name__ == '__main__':
-    user_defined_sim_count = raw_input("Please enter the number of times you wish to simulate\n")
-    user_defined_names = raw_input("Enter a unique name for the saved plot file \n")
-    plot_all(int(user_defined_sim_count), user_defined_names)
+    valid = False
+    while(not valid):
+        try:
+            user_defined_sim_count = raw_input("Please enter the number of times you wish to simulate\n")
+            user_defined_names = raw_input("Enter a unique name for the saved plot file \n")
+            int(user_defined_sim_count)
+            remove(user_defined_names, '\/:*?"<>|')
+            plot_all(int(user_defined_sim_count), user_defined_names)
+            valid = True
+        except ValueError:
+            print ' ERROR : Invalid input. Please input sim count as number'
+            valid = False
+        
