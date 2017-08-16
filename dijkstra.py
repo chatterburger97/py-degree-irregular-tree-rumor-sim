@@ -1,4 +1,4 @@
-import priority_queue
+from priority_queue import PriorityQueue
 
 # how is the graph data structure stored? as an array of objects of class node
 # for all the nodes in a graph
@@ -29,7 +29,7 @@ def dijkstra(G, infected_group, dist_map, starting_node_number):
             dist_map[node_number] = float("inf")
 
     # dist_priority_queue is a priority queue
-    dist_priority_queue = priority_queue.PriorityQueue(dist_map)
+    dist_priority_queue = PriorityQueue(dist_map)
 
     # initialise an spt_set, which initially only contains the starting node number
     # stores the nodes that are visited (added to the shortest path tree already)
