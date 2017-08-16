@@ -55,7 +55,7 @@ def rumor_center2(k):
 
 #function to sort neighbors according to degree
 def deg_sort(i,Reverse):
-    return sorted(Gn[i].neighbor,key=lambda v:(Gn[v].degree,Gn[v].descedant_num),reverse=Reverse)
+    return sorted(Gn[i].neighbor,key=lambda v:(G[v].degree,Gn[v].descedant_num),reverse=Reverse)
 
 #function to bfs and dfs
 def bfs(source,Type):
@@ -84,32 +84,26 @@ def bfs(source,Type):
                 q.append(i)
     return path,possibility
 
-def dfs(source, path=[]):
+def dfs(source, path=[],possibility=1,degsum=0):
     path.append(source)
+    if degsum==0:
+        degsum+=G[source].degree
+    else:
+        degsum+=G[source].degree-2
+    possibility/=float(degsum)
+    #print(possibility)
     for current in Gn[source].neighbor:
         if current not in path:
-            dfs(current, path)
-    return path
+            path,possibility=dfs(current, path,possibility,degsum)
+    return path,possibility
 
 
 # function for heurisitic1
-def max_deg_search(source,path=[],neighbor_heap=[],possibility=1):
-    path.append(source)
-    for i in Gn[source].neighbor:
-        if i not in path:
-            heappush(neighbor_heap,(Gn[i].degree,Gn[i].descedant_num,i))
-    if neighbor_heap:
-        possibility=possibility/float(len(neighbor_heap))
-        #print(possibility)
-        #print(neighbor_heap)
-        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
-    return path,possibility
-
 def min_deg_search(source,path=[],neighbor_heap=[],possibility=1):
     path.append(source)
     for i in Gn[source].neighbor:
         if i not in path:
-            heappush(neighbor_heap,(-Gn[i].degree,-Gn[i].descedant_num,i))
+            heappush(neighbor_heap,(G[i].degree,Gn[i].descedant_num,i))
     if neighbor_heap:
         possibility=possibility/float(len(neighbor_heap))
         #print(possibility)
@@ -117,6 +111,39 @@ def min_deg_search(source,path=[],neighbor_heap=[],possibility=1):
         path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
     return path,possibility
 
+def max_deg_search(source,path=[],neighbor_heap=[],possibility=1):
+    path.append(source)
+    for i in Gn[source].neighbor:
+        if i not in path:
+            heappush(neighbor_heap,(-G[i].degree,-Gn[i].descedant_num,i))
+    if neighbor_heap:
+        possibility=possibility/float(len(neighbor_heap))
+        #print(possibility)
+        #print(neighbor_heap)
+        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
+    return path,possibility
+
+def get_max_p(type):
+    max_p=0
+    max_path=[]
+    for i in infected_group:
+        if type==1:
+            temppath,p=dfs(i, path=[], possibility=1, degsum=0)
+        elif type==2:
+            temppath, p =bfs(i, 1)
+        elif type == 3:
+            temppath, p =bfs(i, 2)
+        elif type == 4:
+            temppath, p =bfs(i, 3)
+        elif type==5:
+            temppath, p =max_deg_search(i, path=[], neighbor_heap=[], possibility=1)
+        else:
+            temppath, p =min_deg_search(i, path=[], neighbor_heap=[], possibility=1)
+        
+        if p>max_p:
+            max_p=p
+            max_path=temppath
+    return max_path,max_p
 # Class of node with number,children,parent,state,degree,neighbor
 
 
@@ -265,11 +292,16 @@ layout=Gp.layout_reingold_tilford_circular()
 plot(Gp,layout=layout,bbox=(500,500))
 print (infected_group,max_node)
 print("root",root)
-print ('dfs\n',dfs(root,path=[]))
-print ('natural bfs\n',bfs(root,1))
-print ('ascending bfs\n',bfs(root,2))
-print ('descending bfs\n',bfs(root,3))
-print ('max_deg_search \n',max_deg_search(root,path=[],neighbor_heap=[],possibility=1))
-print ('min_deg_search \n',min_deg_search(root,path=[],neighbor_heap=[],possibility=1))
 
+print(get_max_p(1))
+print(get_max_p(2))
+print(get_max_p(3))
+print(get_max_p(4))
+print(get_max_p(5))
+#print ('dfs\n',dfs(root,path=[],possibility=1,degsum=0))
+#print ('natural bfs\n',bfs(root,1))
+#print ('ascending bfs\n',bfs(root,2))
+#print ('descending bfs\n',bfs(root,3))
+#print ('max_deg_search \n',max_deg_search(root,path=[],neighbor_heap=[],possibility=1))
+#print ('min_deg_search \n',min_deg_search(root,path=[],neighbor_heap=[],possibility=1))
 
