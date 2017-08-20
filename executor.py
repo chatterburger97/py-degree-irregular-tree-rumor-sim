@@ -64,7 +64,6 @@ class simulation_executor:
         self.chosen_search = chosen_search
         self.bfs_argument = bfs_argument
         self.hopErrorSum = 0
-        self.iteration = 1
         self.error_distribution_dict = {}
         # print 'initialised new simulator'
         # self.hop_error_dict = {}
@@ -81,7 +80,7 @@ class simulation_executor:
         except KeyError:
             self.error_distribution_dict[hop_error] = 1
 
-    def plot_hop_error(self, file_prefix):
+    def plot_hop_error(self, file_prefix, sim_count):
         # logic for plotting one graph per search type such that
         # the graph displays the hop error distribution
         error_distribution_ordered_dict = OrderedDict(sorted(self.error_distribution_dict.items()))
@@ -134,14 +133,14 @@ def plot_all(sim_count, file_prefix):
         dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
 
     # store the sum of hop errors for each search as a key-value pair in a global dictionary
-    natural_bfs_sim.plot_hop_error(file_prefix)
-    ascending_bfs_sim.plot_hop_error(file_prefix)
-    descending_bfs_sim.plot_hop_error(file_prefix)
-    min_deg_sim.plot_hop_error(file_prefix)
-    max_deg_sim.plot_hop_error(file_prefix)
-    bfs_arithmetic_avg_sim.plot_hop_error(file_prefix)
-    bfs_geometric_avg_sim.plot_hop_error(file_prefix)
-    dfs_sim.plot_hop_error(file_prefix)
+    natural_bfs_sim.plot_hop_error(file_prefix, sim_count)
+    ascending_bfs_sim.plot_hop_error(file_prefix, sim_count)
+    descending_bfs_sim.plot_hop_error(file_prefix, sim_count)
+    min_deg_sim.plot_hop_error(file_prefix, sim_count)
+    max_deg_sim.plot_hop_error(file_prefix, sim_count)
+    bfs_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
+    bfs_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
+    dfs_sim.plot_hop_error(file_prefix, sim_count)
 
 
 def remove(value, deletechars):
