@@ -65,22 +65,38 @@ class simulation_executor:
         self.bfs_argument = bfs_argument
         self.hopErrorSum = 0
         self.iteration = 1
+        self.error_distribution_dict = {}
         # print 'initialised new simulator'
+        # self.hop_error_dict = {}
 
     def add_hop_error(self, constructed_graph, input_graph, actual_source, infected_group):
-
         dist_map = dict()
         dijkstra(constructed_graph, infected_group, dist_map, actual_source)
         estimated_start_node = find_max_possibility_path(self.chosen_search, input_graph, infected_group, self.bfs_argument)
 
-        self.hopErrorSum += dist_map[estimated_start_node]
+        # self.hopErrorSum += dist_map[estimated_start_node]
+        hop_error = dist_map[estimated_start_node]
+        try:
+            self.error_distribution_dict[hop_error] += 1
+        except KeyError:
+            self.error_distribution_dict[hop_error] = 1
 
-    def plot_hop_error(self):
+    def plot_hop_error(self, file_prefix):
+        # logic for plotting one graph per search type such that
+        # the graph displays the hop error distribution
+        error_distribution_ordered_dict = OrderedDict(sorted(self.error_distribution_dict.items()))
         if self.chosen_search == 'bfs':
-            key = self.chosen_search + str(self.bfs_argument)
+            title = self.chosen_search + str(self.bfs_argument)
         else:
-            key = self.chosen_search
-        global_hop_error_dictionary[key] = self.hopErrorSum
+            title = self.chosen_search
+
+        print title, error_distribution_ordered_dict
+        plt.title(title)
+        plt.bar(range(len(self.error_distribution_dict)), error_distribution_ordered_dict.values(), align='center')
+        plt.xticks(range(len(self.error_distribution_dict)), error_distribution_ordered_dict.keys())
+        plt.tight_layout()
+        plt.savefig(str(file_prefix + '_' + title + '.png'))
+        plt.clf()
 
 
 def plot_all(sim_count, file_prefix):
@@ -118,21 +134,14 @@ def plot_all(sim_count, file_prefix):
         dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
 
     # store the sum of hop errors for each search as a key-value pair in a global dictionary
-    natural_bfs_sim.plot_hop_error()
-    ascending_bfs_sim.plot_hop_error()
-    descending_bfs_sim.plot_hop_error()
-    min_deg_sim.plot_hop_error()
-    max_deg_sim.plot_hop_error()
-    bfs_arithmetic_avg_sim.plot_hop_error()
-    bfs_geometric_avg_sim.plot_hop_error()
-
-    hop_error_ordered_dict = OrderedDict(sorted(global_hop_error_dictionary.items()))
-    # print hop_error_ordered_dict
-    # print global_hop_error_dictionary, 'global unsorted'
-    plt.bar(range(len(global_hop_error_dictionary)), hop_error_ordered_dict.values(), align='center')
-    plt.xticks(range(len(global_hop_error_dictionary)), hop_error_ordered_dict.keys(), rotation='vertical')
-    plt.tight_layout()
-    plt.savefig(str(file_prefix + '.png'))
+    natural_bfs_sim.plot_hop_error(file_prefix)
+    ascending_bfs_sim.plot_hop_error(file_prefix)
+    descending_bfs_sim.plot_hop_error(file_prefix)
+    min_deg_sim.plot_hop_error(file_prefix)
+    max_deg_sim.plot_hop_error(file_prefix)
+    bfs_arithmetic_avg_sim.plot_hop_error(file_prefix)
+    bfs_geometric_avg_sim.plot_hop_error(file_prefix)
+    dfs_sim.plot_hop_error(file_prefix)
 
 
 def remove(value, deletechars):
