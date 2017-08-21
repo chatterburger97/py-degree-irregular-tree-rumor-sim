@@ -10,7 +10,8 @@ d=3
 N=50 #step
 # Size of Infection Group G_n
 n=10
-
+#a global variable that can increase every search call, calculate sum of degree
+degsum=0
 
 #function to root the tree
 def rootify(k):
@@ -123,33 +124,35 @@ def deg_sort(i,Reverse):
         
 #function to bfs and dfs
 def bfs(source,Type):
-        path = []
-        q = deque([source])
-        possibility=1
-        neighbor_num=0
-        while q:
-                current=q.popleft()
-                path.append(current)
-                if(Type == 1):#nature order
-                        temp_neighbor=Gn[current].neighbor
-                elif(Type == 2):#min order
-                        temp_neighbor=deg_sort(current,False)
-                elif(Type == 3):#max order
-                        temp_neighbor=deg_sort(current,True)
-                if neighbor_num==0:
-                        neighbor_num=neighbor_num+len(temp_neighbor)
-                else:
-                        neighbor_num=neighbor_num+len(temp_neighbor)-2
-                if neighbor_num!=0:
-                        possibility=possibility/float(neighbor_num)
-                # print(possibility)
-                for i in temp_neighbor:
-                        if i not in path:
-                                q.append(i)
-        return path,possibility
+    path = []
+    q = deque([source])
+    possibility=1
+    neighbor_num=0
+    while q:
+        current=q.popleft()
+        path.append(current)
+        true_neighbor=G[current].neighbor
+        if(Type == 1):#nature order
+            temp_neighbor=Gn[current].neighbor
+        elif(Type == 2):#min order
+            temp_neighbor=deg_sort(current,False)
+        elif(Type == 3):#max order
+            temp_neighbor=deg_sort(current,True)
+        if neighbor_num==0:
+            neighbor_num=neighbor_num+len(true_neighbor)
+        else:
+            neighbor_num=neighbor_num+len(true_neighbor)-2
+        if neighbor_num!=0:
+            possibility=possibility/float(neighbor_num)
+        #print(current,G[current].degree,Gn[current].degree,neighbor_num,possibility)
+        for i in temp_neighbor:
+            if i not in path:
+                q.append(i)
+    return path,possibility
 
-def dfs(source, path=[],possibility=1,degsum=0):
+def dfs(source, path=[],possibility=1):
     path.append(source)
+    global degsum
     if degsum==0:
         degsum+=G[source].degree
     else:
@@ -158,33 +161,41 @@ def dfs(source, path=[],possibility=1,degsum=0):
     #print(possibility)
     for current in Gn[source].neighbor:
         if current not in path:
-            path,possibility=dfs(current, path,possibility,degsum)
+            path,possibility=dfs(current, path,possibility)
     return path,possibility
 
 
 # function for heurisitic1
-def min_deg_search(source,path=[],neighbor_heap=[],possibility=1):
+def min_deg_search(source,path=[],neighbor_heap=[],possibility=1,degsum=0):
     path.append(source)
+    if degsum==0:
+        degsum+=G[source].degree
+    else:
+        degsum+=G[source].degree-2
     for i in Gn[source].neighbor:
         if i not in path:
             heappush(neighbor_heap,(G[i].degree,Gn[i].descedant_num,i))
     if neighbor_heap:
-        possibility=possibility/float(len(neighbor_heap))
+        possibility=possibility/float(degsum)
         #print(possibility)
         #print(neighbor_heap)
-        path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
+        path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility,degsum)
     return path,possibility
 
-def max_deg_search(source,path=[],neighbor_heap=[],possibility=1):
+def max_deg_search(source,path=[],neighbor_heap=[],possibility=1,degsum=0):
     path.append(source)
+    if degsum==0:
+        degsum+=G[source].degree
+    else:
+        degsum+=G[source].degree-2
     for i in Gn[source].neighbor:
         if i not in path:
             heappush(neighbor_heap,(-G[i].degree,-Gn[i].descedant_num,i))
     if neighbor_heap:
-        possibility=possibility/float(len(neighbor_heap))
+        possibility=possibility/float(degsum)
         #print(possibility)
         #print(neighbor_heap)
-        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility)
+        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility,degsum)
     return path,possibility
 
 def get_max_p(type):
@@ -192,6 +203,8 @@ def get_max_p(type):
     max_path=[]
     for i in infected_group:
         if type==1:
+            global degsum
+            degsum=0
             temppath,p=dfs(i, path=[], possibility=1, degsum=0)
         elif type==2:
             temppath, p =bfs(i, 1)
