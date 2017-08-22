@@ -32,19 +32,13 @@ def rootify2(k):
                         rootify2(i)
 # mst functions to simplify the infected graph as minimum spanning tree
 # elimate the nodes with degree 2
-def calculate_edge_length(origin,k):
-    Gn[origin].visited = 1
+def record_edges(k):
+    Gn[k].visited = 1
     for i in G[k].neighbor:
         if i in infected_group:
             if Gn[i].visited == 0:
-                if Gn[i].degree==2:
-                    Gn[i].visited = 1
-                    Gn[i].hop = Gn[k].hop + 1
-                    calculate_edge_length(origin, i)
-                else:
-                    gr.append(i)
-                    heappush(edge_heap, (Gn[k].hop + 1 - Gn[origin].hop, (i, origin)))
-                    calculate_edge_length(i, i)
+                heappush(edge_heap,(1,(i,k)))
+                record_edges(i)
 # mst standard functions
 p=dict()
 def find(x):
@@ -56,9 +50,11 @@ def find(x):
 def union(x,y):
     p[find(x)]=find(y)
 def add_edge(length,v1,v2):
+    print(v1,v2,length)
     if length==1:
         Gr[v1].ne_append(v2)
         Gr[v2].ne_append(v1)
+
     elif length==2:
         Gr.append(node(len(Gr)))
         Gr[v1].ne_append(len(Gr)-1)
@@ -77,7 +73,7 @@ def add_edge(length,v1,v2):
         Gr[v2].ne_append(len(Gr) - 1)
         Gr[len(Gr) - 1].ne_append(v2)
 def kruskal():
-    for i in gr:
+    for i in infected_group:
         p[i]=i
     while(edge_heap):
         len,(v1,v2)=heappop(edge_heap)
@@ -205,7 +201,7 @@ def get_max_p(type):
         if type==1:
             global degsum
             degsum=0
-            temppath,p=dfs(i, path=[], possibility=1, degsum=0)
+            temppath,p=dfs(i, path=[], possibility=1)
         elif type==2:
             temppath, p =bfs(i, 1)
         elif type == 3:
@@ -347,14 +343,13 @@ for i in range(1,N+1):   #Set degree of nodes in Gn
 
 #Gr is the simplified graph,gr is its index
 Gr=[node(0)]
-gr=[root]
 edge_heap=[]
-calculate_edge_length(root,root)
+record_edges(root)
 for i in range(1,N+1):
-        if i in gr:
-                Gr.append(node(i))
-        else:
-                Gr.append(node(0))
+     if i in infected_group:
+             Gr.append(node(i))
+     else:
+             Gr.append(node(0))
 kruskal()
 rootify2(root)
 child_sum(root) #compute t^root_v for each node v
