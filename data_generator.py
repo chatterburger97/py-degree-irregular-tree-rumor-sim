@@ -86,7 +86,7 @@ def bfs(source,Type):
                 q.append(i)
     return path,possibility
 
-def dfs(source, path=[],possibility=1):
+def dfs(source, Type,path=[],possibility=1):
     path.append(source)
     global degsum
     if degsum==0:
@@ -95,11 +95,16 @@ def dfs(source, path=[],possibility=1):
         degsum+=G[source].degree-2
     possibility/=float(degsum)
     #print(source,G[source].degree,Gn[source].degree,degsum,possibility)
-    for current in Gn[source].neighbor:
+    if (Type == 1):  # nature order
+        temp_neighbor = Gn[source].neighbor
+    elif (Type == 2):  # min order
+        temp_neighbor = deg_sort(source, False)
+    elif (Type == 3):  # max order
+        temp_neighbor = deg_sort(source, True)
+    for current in temp_neighbor:
         if current not in path:
-            path,possibility=dfs(current, path,possibility)
+            path,possibility=dfs(current, Type,path,possibility)
     return path,possibility
-
 
 # function for heurisitic1
 def min_deg_search(source,path=[],neighbor_heap=[],possibility=1,degsum=0):
@@ -141,7 +146,7 @@ def get_max_p(type):
         if type==1:
             global degsum
             degsum=0
-            temppath,p=dfs(i, path=[], possibility=1)
+            temppath,p=dfs(i, 1,path=[], possibility=1)
         elif type==2:
             temppath, p =bfs(i, 1)
         elif type == 3:
@@ -150,6 +155,14 @@ def get_max_p(type):
             temppath, p =bfs(i, 3)
         elif type==5:
             temppath, p =max_deg_search(i, path=[], neighbor_heap=[], possibility=1)
+        elif type == 6:
+            global degsum
+            degsum = 0
+            temppath, p = dfs(i, 2,path=[], possibility=1)
+        elif type == 7:
+            global degsum
+            degsum = 0
+            temppath, p = dfs(i, 3,path=[], possibility=1)
         else:
             temppath, p =min_deg_search(i, path=[], neighbor_heap=[], possibility=1)
         #print(type,p)
@@ -205,12 +218,17 @@ for i in range(1,N+1):
 
 # STEP 2 : Randomly pick a node as the source
 source=randint(1,N)
+while len(G[source].neighbor)==1:
+    source=randint(1,N)
 G[source].infected=True
 
 # STEP 3 : Simulate the spreading to n nodes
 infected_group=[source]
 end_vertices=[]
-susceptible_group=list(G[source].neighbor)
+susceptible_group=[]
+for i in G[source].neighbor:
+    if len(G[i].neighbor)!=1:
+        susceptible_group.append(i)
 
 num_end=0  # count the number of end vertices
 true_num=1 # count the real infected numbers
@@ -224,7 +242,7 @@ for i in range(1, n):
         if len(G[temp].neighbor)==1:     #if temp is a leaf, end number+1
             num_end+=1
         for j in G[temp].neighbor:
-            if j not in infected_group:
+            if j not in infected_group and len(G[j].neighbor)!=1:
                 susceptible_group.append(j)
 
         pop_item = susceptible_group.index(temp)
@@ -311,6 +329,9 @@ print(get_max_p(2))
 print(get_max_p(3))
 print(get_max_p(4))
 print(get_max_p(5))
+print(get_max_p(6))
+print(get_max_p(7))
+print(get_max_p(8))
 # degsum=0
 # print ('dfs\n',dfs(root,path=[],possibility=1))
 # print ('natural bfs\n',bfs(root,1))
