@@ -92,11 +92,11 @@ def kruskal():
     for i in infected_group:
         p[i] = i
     while(edge_heap):
-        len, (v1, v2) = heappop(edge_heap)
+        length, (v1, v2) = heappop(edge_heap)
         if find(v1) != find(v2):
             union(v1, v2)
             # print("addedge",v1,v2)
-            add_edge(len, v1, v2)
+            add_edge(length, v1, v2)
         else:
             print("cant union", v1, v2)
 # function to compute child sum
@@ -355,7 +355,6 @@ n = true_num      # reset n
 
 # Pick a node from infected group as a root Construct Gn as a rooted tree
 # with the root
-flag = 1
 root_index = randint(0, len(infected_group) - 1)  # root_index is from 0~n-1
 root = infected_group[root_index]
 Gn = [node(0)]                   # Gn is from 1~n   Gn[0] is null vertex
@@ -385,10 +384,11 @@ for i in range(1, N + 1):
 kruskal()
 rootify2(root)
 child_sum(root)  # compute t^root_v for each node v
+
+
 # Plot the Network by iGraph
 Gp = Graph()
 Gp.add_vertices(N)
-
 
 for i in range(1, N + 1):
     for j in range(1, N + 1):
