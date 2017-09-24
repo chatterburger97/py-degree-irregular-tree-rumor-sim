@@ -1,4 +1,4 @@
-import search_heuristics as srch
+import tree_functions as tree_func
 import matplotlib.pyplot as plt
 from dijkstra import dijkstra
 from math import sqrt
@@ -110,7 +110,7 @@ def plot_all(sim_count, file_prefix):
     dfs_sim = simulation_executor('dfs')
 
     for val in range(0, sim_count):
-        input_graph = srch.Graph(100, 3)
+        input_graph = tree_func.Graph(100, 3)
         constructed_graph = input_graph.construct_underlying_graph()
         valid = False
         actual_source = -1

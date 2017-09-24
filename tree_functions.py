@@ -1,4 +1,3 @@
-from igraph import *
 from math import *
 from heapq import *
 from random import *
