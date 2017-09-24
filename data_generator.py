@@ -376,6 +376,7 @@ for i in range(1, N + 1):  # Set degree of nodes in Gn
 Gr = [node(0)]
 edge_heap = []
 record_edges(root)
+
 for i in range(1, N + 1):
     if i in infected_group:
         Gr.append(node(i))

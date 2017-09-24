@@ -1,3 +1,6 @@
+import node
+
+
 class DisjointSet:
 
     def __init__(self):
@@ -18,3 +21,28 @@ class DisjointSet:
 
     def return_as_list(self):
         return self.p
+
+    # additional function
+    def add_edge(self, Gr, length, v1, v2):
+        print(v1, v2, length)
+        if length == 1:
+            Gr[v1].ne_append(v2)
+            Gr[v2].ne_append(v1)
+
+        elif length == 2:
+            Gr.append(node(len(Gr)))
+            Gr[v1].ne_append(len(Gr) - 1)
+            Gr[len(Gr) - 1].ne_append(v1)
+            Gr[v2].ne_append(len(Gr) - 1)
+            Gr[len(Gr) - 1].ne_append(v2)
+        else:
+            Gr.append(node(len(Gr)))
+            Gr[v1].ne_append(len(Gr) - 1)
+            Gr[len(Gr) - 1].ne_append(v1)
+            while length > 2:
+                Gr.append(node(len(Gr)))
+                Gr[len(Gr) - 1].ne_append(len(Gr) - 2)
+                Gr[len(Gr) - 2].ne_append(len(Gr) - 1)
+                length = length - 1
+            Gr[v2].ne_append(len(Gr) - 1)
+            Gr[len(Gr) - 1].ne_append(v2)

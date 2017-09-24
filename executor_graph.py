@@ -19,19 +19,21 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
                 estimated_start_node = val
     elif chosen_search == 'dfs':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, path=[], possibility=1, degsum=0)[1]
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, path=[], possibility=1)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
     elif chosen_search == 'min_deg_search':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
+            # def min_deg_search(self, source, path=[], neighbor_heap=[], possibility=1, degsum=0):
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1, degsum=0)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
     elif chosen_search == 'max_deg_search':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
+            # max_deg_search(self, k, path=[], neighbor_heap=[], possibility=1, degsum=0)
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1, degsum=0)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
@@ -111,8 +113,7 @@ def plot_all(sim_count, file_prefix):
 
     for val in range(0, sim_count):
         input_graph = graph_func.Graph(100, 3)
-        input_graph.construct_underlying_graph()
-
+        constructed_graph = input_graph.construct_underlying_graph()
         valid = False
         actual_source = -1
         infected_group = []
@@ -120,19 +121,18 @@ def plot_all(sim_count, file_prefix):
         while not valid:
             try:
                 actual_source, infected_group = input_graph.spread_rumor(10)
-                infected_mst = input_graph.get_infected_mst()
                 valid = True
             except ValueError:  # known bug in randint in spread_rumor
                 valid = False
 
-        natural_bfs_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        ascending_bfs_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        descending_bfs_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        min_deg_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        max_deg_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        bfs_arithmetic_avg_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        bfs_geometric_avg_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
-        dfs_sim.add_hop_error(infected_mst, input_graph, actual_source, infected_group)
+        natural_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        ascending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        descending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        min_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        max_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        bfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        bfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
 
     # store the sum of hop errors for each search as a key-value pair in a global dictionary
     natural_bfs_sim.plot_hop_error(file_prefix, sim_count)
