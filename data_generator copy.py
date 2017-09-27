@@ -15,11 +15,13 @@ degsum=0
 
 #function to root the tree
 def rootify(k):
+        if(Gn[k].parent==0):
+            Gn[k].parent=-1
         for i in G[k].neighbor:
-                if i!=Gn[k].parent and i in infected_group:
+                if i not in Gn[k].neighbor and i in infected_group:
                         Gn[i].ne_append(k)
                         Gn[k].ne_append(i)
-                        if Gn[i].parent == 0:
+                        if Gn[i].parent == 0 and Gn[k].parent!=i:
                                 Gn[i].parent = k
                                 Gn[k].ch_append(i)
                                 rootify(i)
@@ -50,11 +52,9 @@ def find(x):
 def union(x,y):
     p[find(x)]=find(y)
 def add_edge(length,v1,v2):
-    print(v1,v2,length)
     if length==1:
         Gr[v1].ne_append(v2)
         Gr[v2].ne_append(v1)
-
     elif length==2:
         Gr.append(node(len(Gr)))
         Gr[v1].ne_append(len(Gr)-1)
@@ -79,7 +79,6 @@ def kruskal():
         len,(v1,v2)=heappop(edge_heap)
         if find(v1)!=find(v2):
             union(v1,v2)
-            #print("addedge",v1,v2)
             add_edge(len, v1, v2)
         else:
             print("cant union",v1,v2)
@@ -135,18 +134,17 @@ def bfs(source,Type):
         elif(Type == 3):#max order
             temp_neighbor=deg_sort(current,True)
         if neighbor_num==0:
-            neighbor_num=neighbor_num+len(true_neighbor)
+            neighbor_num= neighbor_num+len(true_neighbor)
         else:
-            neighbor_num=neighbor_num+len(true_neighbor)-2
+            neighbor_num= neighbor_num+len(true_neighbor)-2
         if neighbor_num!=0:
             possibility=possibility/float(neighbor_num)
-        #print(current,G[current].degree,Gn[current].degree,neighbor_num,possibility)
-        for i in temp_neighbor:
-            if i not in path:
-                q.append(i)
-    return path,possibility
+        for t in temp_neighbor:
+            if t not in path and t not in q:
+                q.append(t)
+    return path, possibility
 
-def dfs(source, path=[],possibility=1):
+def dfs(source, Type,path=[],possibility=1):
     path.append(source)
     global degsum
     if degsum==0:
@@ -154,54 +152,57 @@ def dfs(source, path=[],possibility=1):
     else:
         degsum+=G[source].degree-2
     possibility/=float(degsum)
-    #print(possibility)
-    for current in Gn[source].neighbor:
+    if (Type == 1):  # nature order
+        temp_neighbor = Gn[source].neighbor
+    elif (Type == 2):  # min order
+        temp_neighbor = deg_sort(source, False)
+    elif (Type == 3):  # max order
+        temp_neighbor = deg_sort(source, True)
+    for current in temp_neighbor:
         if current not in path:
-            path,possibility=dfs(current, path,possibility)
+            path,possibility=dfs(current, Type,path,possibility)
     return path,possibility
-
 
 # function for heurisitic1
-def min_deg_search(source,path=[],neighbor_heap=[],possibility=1,degsum=0):
+def min_deg_search(source,path=[],visited=[],neighbor_heap=[],possibility=1,degsum=0):
     path.append(source)
     if degsum==0:
         degsum+=G[source].degree
     else:
         degsum+=G[source].degree-2
-    for i in Gn[source].neighbor:
-        if i not in path:
-            heappush(neighbor_heap,(G[i].degree,Gn[i].descedant_num,i))
+    for t in Gn[source].neighbor:
+        if t not in path and t not in visited:
+            heappush(neighbor_heap,(G[t].degree,Gn[t].descedant_num,t))
+            visited.push(t)
     if neighbor_heap:
         possibility=possibility/float(degsum)
-        #print(possibility)
-        #print(neighbor_heap)
-        path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility,degsum)
+        path,possibility=min_deg_search((heappop(neighbor_heap))[2],path,inheap,neighbor_heap,possibility,degsum)
     return path,possibility
 
-def max_deg_search(source,path=[],neighbor_heap=[],possibility=1,degsum=0):
+def max_deg_search(source,path=[],visited=[],neighbor_heap=[],possibility=1,degsum=0):
     path.append(source)
     if degsum==0:
-        degsum+=G[source].degree
+        degsum += G[source].degree
     else:
-        degsum+=G[source].degree-2
-    for i in Gn[source].neighbor:
-        if i not in path:
-            heappush(neighbor_heap,(-G[i].degree,-Gn[i].descedant_num,i))
+        degsum += G[source].degree-2
+    for t in Gn[source].neighbor:
+        if t not in path and t not in visited:
+            heappush(neighbor_heap, (-G[t].degree, -Gn[t].descedant_num,t))
+            visited.append(t)
     if neighbor_heap:
         possibility=possibility/float(degsum)
-        #print(possibility)
-        #print(neighbor_heap)
-        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,neighbor_heap,possibility,degsum)
+        path,possibility=max_deg_search((heappop(neighbor_heap))[2],path,visited,neighbor_heap,possibility,degsum)
     return path,possibility
 
 def get_max_p(type):
     max_p=0
     max_path=[]
+    mtype=-1
     for i in infected_group:
         if type==1:
             global degsum
             degsum=0
-            temppath,p=dfs(i, path=[], possibility=1)
+            temppath,p=dfs(i, 1,path=[], possibility=1)
         elif type==2:
             temppath, p =bfs(i, 1)
         elif type == 3:
@@ -209,19 +210,18 @@ def get_max_p(type):
         elif type == 4:
             temppath, p =bfs(i, 3)
         elif type==5:
-            temppath, p =max_deg_search(i, path=[], neighbor_heap=[], possibility=1)
+            temppath, p =max_deg_search(i, path=[], visited=[],neighbor_heap=[], possibility=1)
         else:
-            temppath, p =min_deg_search(i, path=[], neighbor_heap=[], possibility=1)
-
+            temppath, p =min_deg_search(i, path=[], visited=[],neighbor_heap=[], possibility=1)
         if p>max_p:
             max_p=p
             max_path=temppath
-    return max_path,max_p
+            mtype=type
+    return max_path,max_p,mtype;
 # define minimum spanning tree to transfer the graph with cycle to tree
 
 
-#Class of node with number,children,parent,state,degree,neighbor 
-
+#Class of node with number,children,parent,state,degree,neighbor
 class node(object):
 
         def __init__(self, num):
@@ -289,12 +289,17 @@ for i in range(1,N+1):
                 
 # STEP 2 : Randomly pick a node as the source
 source=randint(1,N)
+while len(G[source].neighbor)==1:
+    source=randint(1,N)
 G[source].infected=True
 
 # STEP 3 : Simulate the spreading to n nodes
 infected_group=[source]
 end_vertices=[]
-susceptible_group=list(G[source].neighbor)
+susceptible_group=[]
+for i in G[source].neighbor:
+    if len(G[i].neighbor)!=1:
+        susceptible_group.append(i)
 
 num_end=0  #count the number of end vertices
 true_num=1 #count the real infected numbers
@@ -303,20 +308,18 @@ for i in range(1,n):
         if (num_end < float(n)):
                 ran_index=randint(0, len(susceptible_group)-1)
                 temp=susceptible_group[ran_index]
-                if temp in infected_group:
-                    continue
-                infected_group.append(temp)
-                G[temp].infected=True
-                if len(G[temp].neighbor)==1:     #if temp is a leaf, end number+1
-                        num_end+=1 
-                for j in G[temp].neighbor:
-                        if j not in infected_group:
-                                susceptible_group.append(j)
+                if G[temp].infected==False:
+                    infected_group.append(temp)
+                    G[temp].infected=True
+                    if len(G[temp].neighbor)==1:     #if temp is a leaf, end number+1
+                            num_end+=1
+                    for j in G[temp].neighbor:
+                        if j not in infected_group and len(G[j].neighbor) != 1:
+                                    susceptible_group.append(j)
 
-                pop_item=susceptible_group.index(temp)
-                susceptible_group.pop(pop_item)
-                true_num+=1                        #count the infected number
-                #print infected_group
+                    pop_item=susceptible_group.index(temp)
+                    susceptible_group.pop(pop_item)
+                    true_num+=1                        #count the infected number
 
 n=true_num      # reset n 
 
