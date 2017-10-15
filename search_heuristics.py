@@ -48,8 +48,8 @@ class Graph(object):
 
     def pick_source(self):
         real_source = randint(1, self.N)
-        while len(self.G[source].neighbor)==1:
-            real_source=randint(1,N)
+        while len(self.G[real_source].neighbor)==1:
+            real_source=randint(1,self.N)
         self.G[real_source].infected = True
         return real_source
 
@@ -59,7 +59,7 @@ class Graph(object):
         self.infected_group = [real_rumor_source]
 
         susceptible_group=[]
-        for i in self.G[source].neighbor:
+        for i in self.G[real_rumor_source].neighbor:
             if len(self.G[i].neighbor)!=1:
                 susceptible_group.append(i)
         
@@ -199,12 +199,12 @@ class Graph(object):
         if degsum==0:
             self.degsum+=self.G[k].degree
         else:
-            degsum+=self.G[k].degree-2
+            self.degsum+=self.G[k].degree-2
         for i in self.Gn[k].neighbor:
             if i not in path:
                 heappush(neighbor_heap, (-self.G[i].degree, -self.Gn[i].descendant_num, i))
         if neighbor_heap:
-            possibility = possibility / float(degsum)
+            possibility = possibility / float(self.degsum)
             path, possibility = self.max_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
         return path, possibility
 
@@ -218,6 +218,6 @@ class Graph(object):
             if i not in path:
                 heappush(neighbor_heap, (self.G[i].degree, self.Gn[i].descendant_num, i))
         if neighbor_heap:
-            possibility = possibility / float(degsum)
+            possibility = possibility / float(self.degsum)
             path, possibility = self.min_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
         return path, possibility
