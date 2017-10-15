@@ -7,7 +7,7 @@ from collections import OrderedDict
 global_hop_error_dictionary = {}
 
 
-def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_argument=1):
+def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_argument=1,dfs_argument=1):
     # max probability among the probabilities of any of the permutations that result in infected_group
     max_permutation_probability = 0
     estimated_start_node = 0
@@ -19,7 +19,8 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
                 estimated_start_node = val
     elif chosen_search == 'dfs':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, path=[], possibility=1, degsum=0)[1]
+            input_graph.degsum=0;
+            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, dfs_argument,path=[], possibility=1)[1]
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
@@ -35,9 +36,15 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
-    elif chosen_search == 'dfs':
+    elif chosen_search == 'deg_search_arithmetic_avg':
         for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val)[1]
+            adjusted_possibility = input_graph.rumor_centrality(val) * (input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]+input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1])/2
+            if max_permutation_probability < float(adjusted_possibility):
+                max_permutation_probability = float(adjusted_possibility)
+                estimated_start_node = val
+    elif chosen_search == 'deg_search_geometric_avg':
+        for val in infected_group:
+            adjusted_possibility = input_graph.rumor_centrality(val) * sqrt(input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]*input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1])
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
@@ -53,6 +60,18 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
             if max_permutation_probability < float(adjusted_possibility):
                 max_permutation_probability = float(adjusted_possibility)
                 estimated_start_node = val
+    elif chosen_search == 'dfs_arithmetic_avg':
+        for val in infected_group:
+            adjusted_possibility = input_graph.rumor_centrality(val) * (input_graph.dfs(val, 2,path=[], possibility=1)[1] + input_graph.dfs(val, 3,path=[], possibility=1)[1])/2
+            if max_permutation_probability < float(adjusted_possibility):
+                max_permutation_probability = float(adjusted_possibility)
+                estimated_start_node = val
+    elif chosen_search == 'dfs_geometric_avg':
+        for val in infected_group:
+            adjusted_possibility = input_graph.rumor_centrality(val) * sqrt(input_graph.dfs(val, 2,path=[], possibility=1)[1] * input_graph.dfs(val, 3,path=[], possibility=1)[1])
+            if max_permutation_probability < float(adjusted_possibility):
+                max_permutation_probability = float(adjusted_possibility)
+                estimated_start_node = val
     else:
         print 'please refer to search_heuristics for a list of valid search methods'
 
@@ -60,9 +79,10 @@ def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_ar
 
 
 class simulation_executor:
-    def __init__(self, chosen_search, bfs_argument=1):
+    def __init__(self, chosen_search, bfs_argument=1,dfs_argument=1):
         self.chosen_search = chosen_search
         self.bfs_argument = bfs_argument
+        self.dfs_argument = dfs_argument
         self.hopErrorSum = 0
         self.error_distribution_dict = {}
         # print 'initialised new simulator'
@@ -71,7 +91,7 @@ class simulation_executor:
     def add_hop_error(self, constructed_graph, input_graph, actual_source, infected_group):
         dist_map = dict()
         dijkstra(constructed_graph, infected_group, dist_map, actual_source)
-        estimated_start_node = find_max_possibility_path(self.chosen_search, input_graph, infected_group, self.bfs_argument)
+        estimated_start_node = find_max_possibility_path(self.chosen_search, input_graph, infected_group, self.bfs_argument,self.dfs_argument)
 
         # self.hopErrorSum += dist_map[estimated_start_node]
         hop_error = dist_map[estimated_start_node]
@@ -103,11 +123,17 @@ def plot_all(sim_count, file_prefix):
     natural_bfs_sim = simulation_executor('bfs', 1)
     ascending_bfs_sim = simulation_executor('bfs', 2)
     descending_bfs_sim = simulation_executor('bfs', 3)
+    natural_dfs_sim = simulation_executor('dfs', 0,1)
+    ascending_dfs_sim = simulation_executor('dfs', 0,2)
+    descending_dfs_sim = simulation_executor('dfs', 0,3)
     min_deg_sim = simulation_executor('min_deg_search')
     max_deg_sim = simulation_executor('max_deg_search')
+    deg_search_arithmetic_avg_sim=simulation_executor('deg_search_arithmetic_avg')
+    deg_search_geometric_avg_sim=simulation_executor('deg_search_geometric_avg')
     bfs_arithmetic_avg_sim = simulation_executor('bfs_arithmetic_avg')
     bfs_geometric_avg_sim = simulation_executor('bfs_geometric_avg')
-    dfs_sim = simulation_executor('dfs')
+    dfs_arithmetic_avg_sim = simulation_executor('dfs_arithmetic_avg')
+    dfs_geometric_avg_sim = simulation_executor('dfs_geometric_avg')
 
     for val in range(0, sim_count):
         input_graph = srch.Graph(100, 3)
@@ -126,21 +152,33 @@ def plot_all(sim_count, file_prefix):
         natural_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         ascending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         descending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        natural_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        ascending_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        descending_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         min_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         max_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        deg_search_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        deg_search_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         bfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
         bfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        dfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+        dfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
 
     # store the sum of hop errors for each search as a key-value pair in a global dictionary
     natural_bfs_sim.plot_hop_error(file_prefix, sim_count)
     ascending_bfs_sim.plot_hop_error(file_prefix, sim_count)
     descending_bfs_sim.plot_hop_error(file_prefix, sim_count)
+    natural_dfs_sim.plot_hop_error(file_prefix, sim_count)
+    ascending_dfs_sim.plot_hop_error(file_prefix, sim_count)
+    descending_dfs_sim.plot_hop_error(file_prefix, sim_count)
     min_deg_sim.plot_hop_error(file_prefix, sim_count)
     max_deg_sim.plot_hop_error(file_prefix, sim_count)
+    deg_search_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
+    deg_search_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
     bfs_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
     bfs_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
-    dfs_sim.plot_hop_error(file_prefix, sim_count)
+    dfs_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
+    dfs_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
 
 
 def remove(value, deletechars):
