@@ -1,203 +1,224 @@
-import search_heuristics as srch
-import matplotlib.pyplot as plt
-from dijkstra import dijkstra
-from math import sqrt
-from collections import OrderedDict
-
-global_hop_error_dictionary = {}
-
-
-def find_max_possibility_path(chosen_search, input_graph, infected_group, bfs_argument=1,dfs_argument=1):
-    # max probability among the probabilities of any of the permutations that result in infected_group
-    max_permutation_probability = 0
-    estimated_start_node = 0
-    if chosen_search == 'bfs':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.bfs(val, bfs_argument)[1]
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'dfs':
-        for val in infected_group:
-            input_graph.degsum=0;
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.dfs(val, dfs_argument,path=[], possibility=1)[1]
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'min_deg_search':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'max_deg_search':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'deg_search_arithmetic_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * (input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]+input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1])/2
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'deg_search_geometric_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * sqrt(input_graph.max_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1]*input_graph.min_deg_search(val, path=[], neighbor_heap=[], possibility=1)[1])
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'bfs_arithmetic_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * (input_graph.bfs(val, 2)[1] + input_graph.bfs(val, 3)[1]) / 2
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'bfs_geometric_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * sqrt(input_graph.bfs(val, 2)[1] * input_graph.bfs(val, 3)[1])
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'dfs_arithmetic_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * (input_graph.dfs(val, 2,path=[], possibility=1)[1] + input_graph.dfs(3, dfs_argument,path=[], possibility=1)[1])/2
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    elif chosen_search == 'dfs_geometric_avg':
-        for val in infected_group:
-            adjusted_possibility = input_graph.rumor_centrality(val) * sqrt(input_graph.dfs(val, 2,path=[], possibility=1)[1] * input_graph.dfs(3, dfs_argument,path=[], possibility=1)[1])
-            if max_permutation_probability < float(adjusted_possibility):
-                max_permutation_probability = float(adjusted_possibility)
-                estimated_start_node = val
-    else:
-        print 'please refer to search_heuristics for a list of valid search methods'
-
-    return estimated_start_node
+from igraph import *
+from math import *
+from heapq import *
+from random import *
+from collections import deque
+from node import *
 
 
-class simulation_executor:
-    def __init__(self, chosen_search, bfs_argument=1,dfs_argument=1):
-        self.chosen_search = chosen_search
-        self.bfs_argument = bfs_argument
-        self.dfs_argument = dfs_argument
-        self.hopErrorSum = 0
-        self.error_distribution_dict = {}
-        # print 'initialised new simulator'
-        # self.hop_error_dict = {}
+class Graph(object):
 
-    def add_hop_error(self, constructed_graph, input_graph, actual_source, infected_group):
-        dist_map = dict()
-        dijkstra(constructed_graph, infected_group, dist_map, actual_source)
-        estimated_start_node = find_max_possibility_path(self.chosen_search, input_graph, infected_group, self.bfs_argument,self.dfs_argument)
+    def __init__(self, N, max_degree):
+        self.G = []
+        self.N = N
+        self.max_degree = max_degree
+        self.Gn = []
+        self.infected_group = []
+        self.root = -1
+        self.degsum=0
 
-        # self.hopErrorSum += dist_map[estimated_start_node]
-        hop_error = dist_map[estimated_start_node]
-        try:
-            self.error_distribution_dict[hop_error] += 1
-        except KeyError:
-            self.error_distribution_dict[hop_error] = 1
+    # N = size of graph
+    def construct_underlying_graph(self):
+        # append nodes
+        for i in range(0, self.N + 1):
+            self.G.append(node(i))
+        candidate = [i for i in range(2, self.N + 1)]
+        for i in range(1, self.N + 1):
+            rand_deg = randint(1, self.max_degree)
+            for j in range(i + 1, self.N + 1):
+                if (self.G[i].degree < rand_deg) and (j in candidate):
+                    self.G[i].ch_append(j)
+                    self.G[i].ne_append(j)
+                    self.G[i].degree = self.G[i].degree + 1
+                    self.G[j].ne_append(i)
+                    self.G[j].parent = i
+                    self.G[j].degree = self.G[j].degree + 1
+                    temp = candidate.index(j)
+                    candidate.pop(temp)
+        return self.G
 
-    def plot_hop_error(self, file_prefix, sim_count):
-        # logic for plotting one graph per search type such that
-        # the graph displays the hop error distribution
-        error_distribution_ordered_dict = OrderedDict(sorted(self.error_distribution_dict.items()))
-        if self.chosen_search == 'bfs':
-            title = self.chosen_search + str(self.bfs_argument)
+    def rootify(self, k):
+        for i in self.G[k].neighbor:
+                if i != self.Gn[k].parent and i in self.infected_group:
+                    self.Gn[i].parent = k
+                    self.Gn[i].ne_append(k)
+                    self.Gn[k].ne_append(i)
+                    self.Gn[k].ch_append(i)
+                    self.rootify(i)
+
+    def pick_source(self):
+        real_source = randint(1, self.N)
+        while len(self.G[real_source].neighbor)==1:
+            real_source=randint(1,self.N)
+        self.G[real_source].infected = True
+        return real_source
+
+        # n = max size of infected graph
+    def spread_rumor(self, n):
+        real_rumor_source = self.pick_source()
+        self.infected_group = [real_rumor_source]
+
+        susceptible_group=[]
+        for i in self.G[real_rumor_source].neighbor:
+            if len(self.G[i].neighbor)!= 1:
+                susceptible_group.append(i)
+        
+        num_end = 0  # count the number of end vertices
+        true_num = 1  # count the real infected numbers
+
+        for i in range(1, n):
+            if (num_end < float(n)):
+                ran_index = randint(1, len(susceptible_group)) - 1
+                temp = susceptible_group[ran_index]
+                self.infected_group.append(temp)
+                self.G[temp].infected = True
+                if len(self.G[temp].neighbor) == 1:  # if temp is a leaf, end number+1
+                    num_end += 1
+                for j in self.G[temp].neighbor:
+                    if j not in self.infected_group and len(self.G[j].neighbor)!= 1:
+                        susceptible_group.append(j)
+
+                pop_item = susceptible_group.index(temp)
+                susceptible_group.pop(pop_item)
+                true_num += 1  # count the infected number
+                # print infected_group
+
+        n = true_num  # reset n
+
+        # Pick a node from infected group as a root
+        # Construct Gn as a rooted tree with the root
+        #  root_index is from 0~n-1
+        root_index = randint(0, len(self.infected_group) - 1)
+        root = self.infected_group[root_index]
+        self.root = root
+        self.Gn = [node(0)]  # Gn is from 1~n   Gn[0] is null vertex
+
+        for i in range(1, self.N + 1):  # Set Gn as large as G, but with uninfected node=0
+            if i in self.infected_group:
+                self.Gn.append(node(i))
+            else:
+                self.Gn.append(node(0))
+
+        self.rootify(root)   # change Gn to a rooted tree
+        self.child_sum(root)  # compute t^root_v for each node v
+
+        for i in range(1, self.N + 1):  # Set degree of nodes in Gn
+            self.Gn[i].degree = len(self.Gn[i].neighbor)
+
+        return real_rumor_source, self.infected_group
+
+    # def return_G(self) :
+    #   return self.G
+
+    # function to compute child sum
+    def child_sum(self, k):
+        temp_sum = 0
+        if len(self.Gn[k].children) > 0:
+            for i in self.Gn[k].children:
+                temp_sum = temp_sum + self.child_sum(i)
+                self.Gn[k].descendant_num = 1 + temp_sum
+            return 1 + temp_sum
         else:
-            title = self.chosen_search
+            self.Gn[k].descendant_num = 1
+            return 1
 
-        print title, error_distribution_ordered_dict
-        plt.title(title)
-        plt.bar(range(len(self.error_distribution_dict)), error_distribution_ordered_dict.values(), align='center')
-        plt.xticks(range(len(self.error_distribution_dict)), error_distribution_ordered_dict.keys())
-        plt.tight_layout()
-        plt.savefig(str(file_prefix + '_' + title + '.png'))
-        plt.clf()
+    # function to compute rumor centrality
+    def rumor_center1(self, k):
+        temp_mul = 1
+        if len(self.Gn[k].children) > 0:
+            for i in self.Gn[k].children:
+                temp_mul = temp_mul * self.rumor_center1(i)
+                if k == self.root:
+                    self.Gn[k].rc = factorial(10) / (self.Gn[k].descendant_num * temp_mul)
+            return self.Gn[k].descendant_num * temp_mul
+        else:
+            return 1
 
+    def rumor_center2(self, k):
+        for i in self.Gn[k].children:
+            self.Gn[i].rc = self.Gn[k].rc * (self.Gn[i].descendant_num / (10 - float(self.Gn[i].descendant_num)))
+            self.rumor_center2(i)
 
-def plot_all(sim_count, file_prefix):
+    def rumor_centrality(self, k):
+        self.rumor_center1(k)
+        self.rumor_center2(k)
+        return self.Gn[k].rc
 
-    natural_bfs_sim = simulation_executor('bfs', 1)
-    ascending_bfs_sim = simulation_executor('bfs', 2)
-    descending_bfs_sim = simulation_executor('bfs', 3)
-    natural_dfs_sim = simulation_executor('dfs', 1)
-    ascending_dfs_sim = simulation_executor('dfs', 2)
-    descending_dfs_sim = simulation_executor('dfs', 3)
-    min_deg_sim = simulation_executor('min_deg_search')
-    max_deg_sim = simulation_executor('max_deg_search')
-    deg_search_arithmetic_avg_sim=simulation_executor('deg_search_arithmetic_avg')
-    deg_search_geometric_avg_sim=simulation_executor('deg_search_geometric_avg')
-    bfs_arithmetic_avg_sim = simulation_executor('bfs_arithmetic_avg')
-    bfs_geometric_avg_sim = simulation_executor('bfs_geometric_avg')
-    dfs_arithmetic_avg_sim = simulation_executor('dfs_arithmetic_avg')
-    dfs_geometric_avg_sim = simulation_executor('dfs_geometric_avg')
+    # function to sort neighbors according to degree
+    def deg_sort(self, i, Reverse):
+        return sorted(self.Gn[i].neighbor, key=lambda v: (self.Gn[v].degree, self.Gn[v].descendant_num), reverse=Reverse)
 
-    for val in range(0, sim_count):
-        input_graph = srch.Graph(100, 3)
-        constructed_graph = input_graph.construct_underlying_graph()
-        valid = False
-        actual_source = -1
-        infected_group = []
+    # function to bfs and dfs
+    def bfs(self, source, Type):
+            path = []
+            q = deque([source])
+            possibility = 1
+            neighbor_num = 0
+            while q:
+                    current = q.popleft()
+                    path.append(current)
+                    true_neighbor=self.G[current].neighbor
+                    if(Type == 1):  # nature order
+                            temp_neighbor = self.Gn[current].neighbor
+                    elif(Type == 2):  # min order
+                            temp_neighbor = self.deg_sort(current, False)
+                    elif(Type == 3):  # max order
+                            temp_neighbor = self.deg_sort(current, True)
+                    if neighbor_num==0:
+                            neighbor_num=neighbor_num+len(true_neighbor)
+                    else:
+                            neighbor_num=neighbor_num+len(true_neighbor)-2
+                    if neighbor_num != 0:
+                            possibility = possibility / float(neighbor_num)
+                    # print(possibility)
+                    for i in temp_neighbor:
+                            if i not in path:
+                                    q.append(i)
+            return path, possibility
 
-        while not valid:
-            try:
-                actual_source, infected_group = input_graph.spread_rumor(10)
-                valid = True
-            except ValueError:  # known bug in randint in spread_rumor
-                valid = False
+    def dfs(self, k,Type, path=[], possibility=1):
+        path.append(k)
+        if self.degsum == 0:
+            self.degsum += self.G[k].degree
+        else:
+            self.degsum += self.G[k].degree - 2
+        possibility /= float(self.degsum)
+        temp_neighbor = []
+        if (Type == 1):  # nature order
+            temp_neighbor = self.Gn[k].neighbor
+        elif (Type == 2):  # min order
+            temp_neighbor = self.deg_sort(k, False)
+        elif (Type == 3):  # max order
+            temp_neighbor = self.deg_sort(k, True)
+        for current in temp_neighbor:
+            if current not in path:
+                path, possibility = self.dfs(current,Type,path, possibility)
+        return path, possibility
 
-        natural_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        ascending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        descending_bfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        natural_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        ascending_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        descending_dfs_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        min_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        max_deg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        deg_search_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        deg_search_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        bfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        bfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        dfs_arithmetic_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
-        dfs_geometric_avg_sim.add_hop_error(constructed_graph, input_graph, actual_source, infected_group)
+    def max_deg_search(self, k, path=[], neighbor_heap=[], possibility=1,degsum=0):
+        path.append(k)
+        if degsum==0:
+            degsum+=self.G[k].degree
+        else:
+            degsum+=self.G[k].degree-2
+        for i in self.Gn[k].neighbor:
+            if i not in path:
+                heappush(neighbor_heap, (-self.G[i].degree, -self.Gn[i].descendant_num, i))
+        if neighbor_heap:
+            possibility = possibility / float(degsum)
+            path, possibility = self.max_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
+        return path, possibility
 
-    # store the sum of hop errors for each search as a key-value pair in a global dictionary
-    natural_bfs_sim.plot_hop_error(file_prefix, sim_count)
-    ascending_bfs_sim.plot_hop_error(file_prefix, sim_count)
-    descending_bfs_sim.plot_hop_error(file_prefix, sim_count)
-    natural_dfs_sim.plot_hop_error(file_prefix, sim_count)
-    ascending_dfs_sim.plot_hop_error(file_prefix, sim_count)
-    descending_dfs_sim.plot_hop_error(file_prefix, sim_count)
-    min_deg_sim.plot_hop_error(file_prefix, sim_count)
-    max_deg_sim.plot_hop_error(file_prefix, sim_count)
-    deg_search_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
-    deg_search_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
-    bfs_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
-    bfs_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
-    dfs_arithmetic_avg_sim.plot_hop_error(file_prefix, sim_count)
-    dfs_geometric_avg_sim.plot_hop_error(file_prefix, sim_count)
-
-
-def remove(value, deletechars):
-    for c in deletechars:
-        value = value.replace(c, '')
-    return value
-
-
-# run actual main method
-if __name__ == '__main__':
-    valid = False
-    while(not valid):
-        try:
-            user_defined_sim_count = raw_input("Please enter the number of times you wish to simulate\n")
-            user_defined_names = raw_input("Enter a unique name for the saved plot file \n")
-            int(user_defined_sim_count)
-            remove(user_defined_names, '\/:*?"<>|')
-            plot_all(int(user_defined_sim_count), user_defined_names)
-            valid = True
-        except ValueError:
-            print ' ERROR : Invalid input. Please input sim count as number'
-            valid = False
+    def min_deg_search(self, k, path=[], neighbor_heap=[], possibility=1,degsum=0):
+        path.append(k)
+        if degsum==0:
+            degsum+=self.G[k].degree
+        else:
+            degsum+=self.G[k].degree-2
+        for i in self.Gn[k].neighbor:
+            if i not in path:
+                heappush(neighbor_heap, (self.G[i].degree, self.Gn[i].descendant_num, i))
+        if neighbor_heap:
+            possibility = possibility / float(degsum)
+            path, possibility = self.min_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
+        return path, possibility
