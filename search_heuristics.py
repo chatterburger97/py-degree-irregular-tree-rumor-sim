@@ -60,7 +60,7 @@ class Graph(object):
 
         susceptible_group=[]
         for i in self.G[real_rumor_source].neighbor:
-            if len(self.G[i].neighbor)!=1:
+            if len(self.G[i].neighbor)!= 1:
                 susceptible_group.append(i)
         
         num_end = 0  # count the number of end vertices
@@ -75,7 +75,7 @@ class Graph(object):
                 if len(self.G[temp].neighbor) == 1:  # if temp is a leaf, end number+1
                     num_end += 1
                 for j in self.G[temp].neighbor:
-                    if j not in self.infected_group:
+                    if j not in self.infected_group and len(self.G[j].neighbor)!= 1:
                         susceptible_group.append(j)
 
                 pop_item = susceptible_group.index(temp)
@@ -176,35 +176,36 @@ class Graph(object):
                                     q.append(i)
             return path, possibility
 
-    def dfs(self, Type,k, path=[], possibility=1):
+    def dfs(self, k,Type, path=[], possibility=1):
         path.append(k)
         if self.degsum == 0:
             self.degsum += self.G[k].degree
         else:
             self.degsum += self.G[k].degree - 2
         possibility /= float(self.degsum)
+        temp_neighbor = []
         if (Type == 1):  # nature order
             temp_neighbor = self.Gn[k].neighbor
         elif (Type == 2):  # min order
             temp_neighbor = self.deg_sort(k, False)
         elif (Type == 3):  # max order
             temp_neighbor = self.deg_sort(k, True)
-        for current in self.Gn[k].neighbor:
+        for current in temp_neighbor:
             if current not in path:
-                path, possibility = self.dfs(current, Type,path, possibility)
+                path, possibility = self.dfs(current,Type,path, possibility)
         return path, possibility
 
     def max_deg_search(self, k, path=[], neighbor_heap=[], possibility=1,degsum=0):
         path.append(k)
         if degsum==0:
-            self.degsum+=self.G[k].degree
+            degsum+=self.G[k].degree
         else:
-            self.degsum+=self.G[k].degree-2
+            degsum+=self.G[k].degree-2
         for i in self.Gn[k].neighbor:
             if i not in path:
                 heappush(neighbor_heap, (-self.G[i].degree, -self.Gn[i].descendant_num, i))
         if neighbor_heap:
-            possibility = possibility / float(self.degsum)
+            possibility = possibility / float(degsum)
             path, possibility = self.max_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
         return path, possibility
 
@@ -218,6 +219,6 @@ class Graph(object):
             if i not in path:
                 heappush(neighbor_heap, (self.G[i].degree, self.Gn[i].descendant_num, i))
         if neighbor_heap:
-            possibility = possibility / float(self.degsum)
+            possibility = possibility / float(degsum)
             path, possibility = self.min_deg_search((heappop(neighbor_heap))[2], path, neighbor_heap, possibility,degsum)
         return path, possibility
